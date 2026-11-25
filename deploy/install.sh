@@ -29,6 +29,14 @@ sudo ln -sf /etc/nginx/sites-available/boostkit /etc/nginx/sites-enabled/boostki
 sudo nginx -t && sudo systemctl reload nginx
 echo "nginx -> http://$(hostname).local:$PORT"
 
+# Extra de Klipper (telemetría: velocidad, aceleración, flujo, acelerómetro).
+if [ -d "$HOME/klipper/klippy/extras" ]; then
+  ln -sf "$HERE/../klipper/boostkit.py" "$HOME/klipper/klippy/extras/boostkit.py"
+  ex="$HOME/klipper/.git/info/exclude"
+  grep -qx 'klippy/extras/boostkit.py' "$ex" 2>/dev/null || echo 'klippy/extras/boostkit.py' >> "$ex"
+  echo "klipper extra -> ~/klipper/klippy/extras/boostkit.py (add [boostkit] to printer.cfg)"
+fi
+
 # Menú lateral de Mainsail (Fluidd no admite enlaces propios: marcador del navegador).
 mkdir -p "$CFG/.theme"
 python3 - "$CFG/.theme/navi.json" "http://$(hostname).local:$PORT" <<'EOF'
@@ -53,5 +61,18 @@ repo: $REPO
 path: ~/klipper-boostkit
 EOF
   echo "moonraker.conf: added [update_manager klipper-boostkit] (restart moonraker)"
+fi
+SRC="$(cd "$HERE/.." && pwd)"
+if [ -d "$SRC/.git" ] && ! grep -q '^\[update_manager klipper-boostkit-extra\]' "$MOON" 2>/dev/null; then
+  cat >> "$MOON" <<EOF
+
+[update_manager klipper-boostkit-extra]
+type: git_repo
+path: $SRC
+origin: https://github.com/$REPO.git
+primary_branch: main
+managed_services: klipper
+EOF
+  echo "moonraker.conf: added [update_manager klipper-boostkit-extra] (git clone with the Klipper extra)"
 fi
 echo "OK"

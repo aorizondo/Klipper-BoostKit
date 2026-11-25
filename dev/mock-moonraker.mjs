@@ -30,6 +30,7 @@ const S = {
   probe: { last_query: false, last_z_result: 0 },
   manual_probe: { is_active: false, z_position: null, z_position_lower: null, z_position_upper: null },
   'gcode_macro _SONDA': { deployed: false, pending: 0 },
+  boostkit: { velocity: 0, velocity_peak: 0, accel: 0, accel_peak: 0, e_velocity: 0, flow: 0, flow_peak: 0, accel_chip: { enabled: false } },
 }
 const settings = {
   printer: { kinematics: 'cartesian', max_velocity: 150, max_accel: 2500, square_corner_velocity: 5 },
@@ -38,7 +39,9 @@ const settings = {
   stepper_x: { position_min: -40, position_max: 310, position_endstop: -40 },
   stepper_y: { position_min: -60, position_max: 320, position_endstop: -60 },
   stepper_z: { position_min: -2, position_max: 110 },
+  boostkit: { accel_chip: 'adxl345_i2c cabezal' },
 }
+let accelOn = 0 // ms de la última petición BK_ACCEL_MONITOR
 let savePending = false
 const db = {}
 const tempHist = { extruder: { temperatures: [], targets: [], powers: [] } }
@@ -237,6 +240,10 @@ async function run(line) {
     case 'RESUME': S.print_stats.state = 'printing'; S.pause_resume.is_paused = false; return
     case 'CANCEL_PRINT': S.print_stats.state = 'cancelled'; S.virtual_sdcard.is_active = false; return
     case 'MOCK_PRINT': Object.assign(S.print_stats, { state: 'printing', filename: 'benchy_0.2mm_PETG.gcode' }); S.virtual_sdcard.progress = 0; S.virtual_sdcard.is_active = true; return
+    case 'BK_ACCEL_MONITOR':
+      accelOn = +(p.ENABLE ?? 1) ? Date.now() : 0
+      if (!accelOn) S.boostkit.accel_chip = { enabled: false }
+      return
     case 'HELP': say('// Available extended commands:\n// SET_GCODE_OFFSET\n// PROBE\n// ... (simulador)'); return
     case 'M503': say('// (simulador) M503'); return
     default: throw new GError(`Unknown command:"${cmd}"`)
@@ -312,6 +319,32 @@ setInterval(() => {
   }
   S.gcode_move.gcode_position = gpos()
   S.gcode_move.position = [...S.toolhead.position]
+  // telemetría BoostKit
+  const bk = S.boostkit
+  const printingNow = S.print_stats.state === 'printing'
+  const t = Date.now() / 1000
+  let v = anim ? Math.min(S.toolhead.max_velocity, 50) : 0
+  let a = anim ? S.toolhead.max_accel * (Math.random() > 0.5 ? 1 : 0.6) : 0
+  let ev = 0
+  if (printingNow) {
+    v = (60 + 50 * Math.sin(t / 3) + 20 * Math.random()) * S.gcode_move.speed_factor
+    a = S.toolhead.max_accel * (0.5 + 0.5 * Math.random())
+    ev = v * 0.033 * S.gcode_move.extrude_factor
+  }
+  const area = Math.PI * 0.875 ** 2
+  Object.assign(bk, {
+    velocity: +v.toFixed(2), velocity_peak: +(v * 1.1).toFixed(2), accel: +a.toFixed(1), accel_peak: +a.toFixed(1),
+    e_velocity: +ev.toFixed(3), flow: +(ev * area).toFixed(2), flow_peak: +(ev * area * 1.15).toFixed(2),
+  })
+  if (accelOn && Date.now() - accelOn < 30000) {
+    const k = a / S.toolhead.max_accel
+    const n = () => (Math.random() - 0.5) * 2
+    bk.accel_chip = {
+      enabled: true, samples: 200, x: +(n() * 20).toFixed(1), y: +(n() * 20).toFixed(1), z: 9806,
+      x_peak: +(Math.abs(n()) * 150 + k * 2200 + 30).toFixed(1), y_peak: +(Math.abs(n()) * 120 + k * 1600 + 25).toFixed(1),
+      z_peak: +(Math.abs(n()) * 90 + k * 400 + 20).toFixed(1), rms: +(k * 600 + 40).toFixed(1),
+    }
+  } else if (accelOn) { accelOn = 0; bk.accel_chip = { enabled: false } }
   if (S.print_stats.state === 'printing') {
     S.virtual_sdcard.progress = Math.min(1, S.virtual_sdcard.progress + 0.0008)
     S.print_stats.print_duration += 0.25

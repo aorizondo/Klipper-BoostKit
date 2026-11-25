@@ -25,8 +25,8 @@ async function goTo() {
   if (!parts.length) return
   const z = parts.length === 1 && parts[0].startsWith('Z')
   await gcode(`SAVE_GCODE_STATE NAME=_bk_goto\nG90\nG1 ${parts.join(' ')} F${z ? state.prefs.jogFeedZ : state.prefs.jogFeedXY}\nRESTORE_GCODE_STATE NAME=_bk_goto`)
+  goto.value = { X: '', Y: '', Z: '' }
 }
-
 function setFeed(kind: 'jogFeedXY' | 'jogFeedZ', v: string) {
   const n = parseFloat(v)
   if (n > 0) {
@@ -34,14 +34,15 @@ function setFeed(kind: 'jogFeedXY' | 'jogFeedZ', v: string) {
     savePrefs()
   }
 }
+const help = 'Teclado numérico: 8/2/4/6 = Y/X · 7/9/1/3 = diagonales · +/− = Z · 5 = Home XY · 0 = Home todo · ↵ = extruir · . = retraer · / * = paso. También flechas y Re Pág/Av Pág.'
 </script>
 
 <template>
   <section class="card move">
     <h2>
-      Movimiento
+      Movimiento <span class="help" :title="help">?</span>
       <span class="spacer" />
-      <div class="seg">
+      <div class="seg mini">
         <button :class="{ on: view === 'both' }" @click="setView('both')">Ambos</button>
         <button :class="{ on: view === 'pad' }" @click="setView('pad')">Teclado</button>
         <button :class="{ on: view === 'wheel' }" @click="setView('wheel')">Rueda</button>
@@ -49,54 +50,45 @@ function setFeed(kind: 'jogFeedXY' | 'jogFeedZ', v: string) {
     </h2>
 
     <div class="posbar">
-      <div v-for="(a, i) in axes" :key="a" class="axis" :class="'ax-' + a.toLowerCase()">
-        <div class="an">
-          {{ a }}
-          <span class="dot" :class="{ homed: homed.includes(a.toLowerCase()) }" :title="homed.includes(a.toLowerCase()) ? 'con homing' : 'sin homing'" />
-        </div>
-        <div class="av mono">{{ pos[i]?.toFixed(2) }}</div>
-        <div class="ar mono small mute">{{ lim.min[i] }} … {{ lim.max[i] }}</div>
-        <div v-if="Math.abs(gpos[i] - pos[i]) > 0.001" class="ag mono small mute" title="posición G-code (con offsets)">G {{ gpos[i]?.toFixed(2) }}</div>
+      <div v-for="(a, i) in axes" :key="a" class="axis" :class="'ax-' + a.toLowerCase()"
+           :title="`límites ${lim.min[i]} … ${lim.max[i]}` + (Math.abs(gpos[i] - pos[i]) > 0.001 ? ` · G-code ${gpos[i]?.toFixed(2)}` : '')">
+        <span class="an">{{ a }}<i class="dot" :class="{ homed: homed.includes(a.toLowerCase()) }" /></span>
+        <span class="av mono">{{ pos[i]?.toFixed(2) }}</span>
+        <input v-model="goto[a]" class="go num" type="number" placeholder="ir a" :disabled="!canJog" @keydown.enter="goTo" />
       </div>
     </div>
 
     <div class="row stepbar">
       <span class="mute small">Paso</span>
-      <div class="seg">
+      <div class="seg mini">
         <button v-for="s in state.prefs.jogSteps" :key="s" :class="{ on: jogUi.step === s }" @click="jogUi.step = s">{{ s }}</button>
       </div>
       <span class="grow" />
-      <label class="small mute">XY <input class="num" style="width: 64px" type="number" :value="state.prefs.jogFeedXY / 60" @change="setFeed('jogFeedXY', ($event.target as HTMLInputElement).value)" /> mm/s</label>
-      <label class="small mute">Z <input class="num" style="width: 56px" type="number" :value="state.prefs.jogFeedZ / 60" @change="setFeed('jogFeedZ', ($event.target as HTMLInputElement).value)" /> mm/s</label>
+      <label class="small mute">XY <input class="num f" type="number" :value="state.prefs.jogFeedXY / 60" @change="setFeed('jogFeedXY', ($event.target as HTMLInputElement).value)" /></label>
+      <label class="small mute">Z <input class="num f" type="number" :value="state.prefs.jogFeedZ / 60" @change="setFeed('jogFeedZ', ($event.target as HTMLInputElement).value)" /> mm/s</label>
     </div>
 
-    <div v-if="printing" class="banner">Imprimiendo: el jog está bloqueado. Usa babystep y los ajustes en vivo.</div>
+    <div v-if="printing" class="banner">Imprimiendo: jog bloqueado (usa babystep y ajustes en vivo).</div>
 
-    <div class="jogs" :class="view">
+    <div class="jogs">
       <JogNumpad v-if="view !== 'wheel'" />
       <JogWheel v-if="view !== 'pad'" />
     </div>
-
-    <div class="sep" />
-    <div class="row">
-      <span class="mute small">Ir a</span>
-      <input v-for="a in axes" :key="a" v-model="goto[a]" class="num" style="width: 72px" type="number" :placeholder="a" @keydown.enter="goTo" />
-      <button class="btn sm" :disabled="!canJog" @click="goTo">Mover</button>
-    </div>
-    <p class="hint">Teclado numérico: 8/2/4/6 = Y/X, 7/9/1/3 = diagonales, +/− = Z, 5 = Home XY, 0 = Home todo,
-      ↵ = extruir, . = retraer, / * = paso. También flechas y Re Pág/Av Pág.</p>
   </section>
 </template>
 
 <style scoped>
-.posbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-.axis { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
-.an { font-weight: 700; display: flex; align-items: center; gap: 6px; }
-.av { font-size: 22px; font-weight: 600; color: var(--text); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 6px var(--warn); }
-.dot.homed { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
-.stepbar { margin-bottom: 12px; }
-.jogs { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; justify-content: center; }
-.jogs > * { flex: 0 1 330px; }
-.banner { background: color-mix(in srgb, var(--warn) 12%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn); padding: 8px 10px; border-radius: 10px; margin-bottom: 10px; font-size: 13px; }
+.help { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line); font-size: 10px; cursor: help; letter-spacing: 0; }
+.seg.mini button { padding: 3px 9px; font-size: 12px; text-transform: none; letter-spacing: 0; }
+.posbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+.axis { background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 4px 6px 4px 9px; display: flex; align-items: center; gap: 6px; }
+.an { font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.av { font-size: 17px; font-weight: 600; color: var(--text); flex: 1; }
+.go { width: 58px; padding: 2px 5px; font-size: 11.5px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 5px var(--warn); display: inline-block; }
+.dot.homed { background: var(--ok); box-shadow: 0 0 5px var(--ok); }
+.stepbar { margin-bottom: 8px; gap: 6px; }
+.num.f { width: 48px; padding: 2px 5px; font-size: 12px; }
+.jogs { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.banner { background: color-mix(in srgb, var(--warn) 12%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn); padding: 5px 10px; border-radius: 9px; margin-bottom: 8px; font-size: 12.5px; }
 </style>

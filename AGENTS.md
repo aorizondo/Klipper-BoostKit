@@ -10,6 +10,9 @@ Port del [OctoPrint-BoostKit](../OctoPrint-BoostKit). Genérica; primera máquin
 
 ```
 src/api/moonraker.ts      cliente JSON-RPC (reconexión, notify_*)
+klipper/boostkit.py       extra de Klipper [boostkit]: telemetría (trapq) + acelerómetro bajo
+                          demanda (BK_ACCEL_MONITOR, suspend_accel/resume_accel)
+src/store/telemetry.ts    muestras a 4 Hz fuera de la reactividad (markRaw) + `tick`
 src/store/printer.ts      estado reactivo: objetos suscritos, settings, log, toasts,
                           prefs (BD de Moonraker, namespace "boostkit"), diálogos prompt_*
 src/composables/jog.ts    jog/home/extruir (SAVE/RESTORE_GCODE_STATE, recorta a límites)
@@ -33,6 +36,12 @@ deploy/                   nginx :82, install.sh (web + navi.json + update_manage
 - **Verificar con el simulador y `dev/shot.mjs`** antes de subir; leer las capturas.
 - Probar en la MK4: `MOONRAKER=mk4.local:7125 npm run dev` (cors `*://localhost:*` ya está en su
   moonraker.conf). Nunca reiniciar Klipper/Moonraker con una impresión en curso.
+
+- **Acelerómetro compartido**: el streaming del chip y quien lo reprograma (homing por choque,
+  sonda de boquilla) no pueden coincidir. `suspend_accel()` para el stream **síncronamente**
+  (`batch_bulk._stop()`) antes de tocar registros. Probado en el smoke test de frankenprinter
+  (`klipper-config/mk4/test/smoke.sh`: fake_accel falla si se reprograma emitiendo).
+- **Layout**: debe caber en 1600×900 sin scroll (`SCENARIO=tele W=1600 H=900 node dev/shot.mjs`).
 
 ## Convenciones
 

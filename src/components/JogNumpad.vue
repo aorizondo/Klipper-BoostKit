@@ -61,7 +61,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   <div class="pad" :class="{ off: !canJog }">
     <div class="key lock" :class="{ on: jogUi.keyboard }" style="grid-area: lock" @click="jogUi.keyboard = !jogUi.keyboard"
          title="Activar/desactivar el teclado físico">
-      <span class="big">⌨</span><span class="act">{{ jogUi.keyboard ? 'teclado ON' : 'teclado OFF' }}</span>
+      <span class="big">⌨</span><span class="act">{{ jogUi.keyboard ? 'ON' : 'OFF' }}</span>
     </div>
     <button v-for="k in keys" :key="k.code" class="key" :class="[k.cls, { flash: jogUi.flash === k.code }]"
             :style="{ gridArea: k.area }" :disabled="!canJog && k.cls !== 'fn'" @click="press(k)">
@@ -72,16 +72,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 <style scoped>
 .pad {
-  display: grid; gap: 7px;
+  display: grid; gap: 5px;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(5, 54px);
+  grid-template-rows: repeat(5, 42px);
   grid-template-areas:
     'lock div mul sub'
     'n7 n8 n9 add'
     'n4 n5 n6 add'
     'n1 n2 n3 ent'
     'n0 n0 dec ent';
-  max-width: 330px;
+  width: 218px; flex: none;
 }
 .key {
   background: linear-gradient(180deg, #262b33, #1c2027); border: 1px solid var(--line);
@@ -92,8 +92,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .key:hover:not(:disabled) { border-color: #3c4550; }
 .key:active:not(:disabled), .key.flash { transform: translateY(2px); border-bottom-width: 1px; background: color-mix(in srgb, var(--accent) 25%, #1c2027); border-color: var(--accent); }
 .key:disabled { opacity: .35; cursor: not-allowed; }
-.big { font-size: 18px; font-weight: 600; line-height: 1; }
-.act { font-size: 10.5px; color: var(--mute); margin-top: 3px; letter-spacing: .02em; }
+.big { font-size: 16px; font-weight: 600; line-height: 1; }
+.act { font-size: 10px; color: var(--mute); margin-top: 2px; letter-spacing: .02em; }
 .x .act { color: var(--x); } .y .act { color: var(--y); } .z .act { color: var(--z); } .e .act { color: var(--e); }
 .home .act { color: var(--accent2); }
 .diag .act { color: #9aa3ad; font-size: 13px; }

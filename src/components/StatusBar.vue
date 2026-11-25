@@ -49,7 +49,7 @@ const fluidd = computed(() => `${location.protocol}//${location.hostname}:81`)
 </template>
 
 <style scoped>
-.bar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; padding: 10px 18px;
+.bar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 10px; padding: 7px 14px;
   background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .brand { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px; }
 .logo { color: var(--accent); }

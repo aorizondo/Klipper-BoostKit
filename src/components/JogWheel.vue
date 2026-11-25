@@ -69,8 +69,8 @@ const fmt = (v: number) => (v < 1 ? v.toString().replace(/^0/, '') : v.toString(
 </template>
 
 <style scoped>
-.wheelbox { display: flex; gap: 14px; align-items: center; }
-.wheel { width: 100%; max-width: 320px; min-width: 220px; aspect-ratio: 1; user-select: none; }
+.wheelbox { display: flex; gap: 6px; align-items: center; }
+.wheel { width: 196px; flex: none; aspect-ratio: 1; user-select: none; }
 .seg { stroke: #0e1013; stroke-width: 2; cursor: pointer; transition: fill .1s, filter .1s; }
 .seg.x.r0 { fill: #4a3236; } .seg.x.r1 { fill: #3f2c30; } .seg.x.r2 { fill: #35272a; } .seg.x.r3 { fill: #2c2224; }
 .seg.y.r0 { fill: #2f4436; } .seg.y.r1 { fill: #293b2f; } .seg.y.r2 { fill: #233229; } .seg.y.r3 { fill: #1e2a22; }
@@ -88,8 +88,8 @@ const fmt = (v: number) => (v < 1 ? v.toString().replace(/^0/, '') : v.toString(
 .corner:hover circle { stroke: var(--accent); }
 .corner text { font-size: 11px; fill: var(--accent2); text-anchor: middle; pointer-events: none; font-weight: 600; }
 .corner.warn text { fill: var(--warn); }
-.zcol { display: flex; flex-direction: column; gap: 4px; min-width: 64px; }
-.zb { background: #20252c; border: 1px solid var(--line); border-radius: 8px; padding: 5px 0; cursor: pointer; font-family: var(--mono); font-size: 12px; }
+.zcol { display: flex; flex-direction: column; gap: 2px; width: 46px; }
+.zb { background: #20252c; border: 1px solid var(--line); border-radius: 7px; padding: 2px 0; cursor: pointer; font-family: var(--mono); font-size: 11px; }
 .zb.up { color: var(--z); } .zb.dn { color: #8fc3ff; }
 .zb:hover:not(:disabled) { border-color: var(--z); }
 .zb:disabled { opacity: .35; cursor: not-allowed; }

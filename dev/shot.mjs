@@ -12,7 +12,22 @@ const PORT = 9333
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const click = (text) => `(() => { const b=[...document.querySelectorAll('button,.key,g.corner')].find(e=>e.textContent.replace(/\\s+/g,' ').trim().includes(${JSON.stringify(text)})); if(!b) return 'NO '+${JSON.stringify(text)}; b.dispatchEvent(new MouseEvent('click',{bubbles:true})); return 'ok' })()`
 
-const STEPS = [
+const SCENARIOS = {}
+SCENARIOS.tele = [
+  { js: `localStorage.setItem('bk.tele', JSON.stringify({visible:['temp','vel','acc','flow','adxl','fac'],minutes:1})); location.reload(); 'ok'` },
+  { wait: 2500 },
+  { js: `fetch; 'ok'` },
+  { gcode: 'SET_HEATER_TEMPERATURE HEATER=extruder TARGET=210' },
+  { gcode: 'MOCK_PRINT' },
+  { wait: 20000 },
+  { gcode: 'M220 S150' },
+  { wait: 6000 },
+  { mouse: [900, 330] },
+  { wait: 400 },
+  { shot: 'tele-1600x900', full: false },
+  { shot: 'tele-full' },
+]
+SCENARIOS.default = [
   { wait: 2500 },
   { shot: '01-inicio' },
   { js: click('Home todo') }, { wait: 2500 },
@@ -26,9 +41,11 @@ const STEPS = [
   { shot: '03-tras-jog' },
   { js: `document.querySelector('.log')?.innerText.slice(-1500)` },
 ]
+const STEPS = SCENARIOS[process.env.SCENARIO ?? 'default']
+const W = +(process.env.W ?? 1600), H = +(process.env.H ?? 1500)
 
 const chrome = spawn('chromium', ['--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-  `--remote-debugging-port=${PORT}`, '--window-size=1600,1500', 'about:blank'], { stdio: 'ignore' })
+  `--remote-debugging-port=${PORT}`, `--window-size=${W},${H}`, 'about:blank'], { stdio: 'ignore' })
 try {
   let targets
   for (let i = 0; i < 40; i++) {
@@ -47,7 +64,7 @@ try {
   }
   const cdp = (method, params = {}) => new Promise((r) => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })) })
   await cdp('Runtime.enable')
-  await cdp('Emulation.setDeviceMetricsOverride', { width: 1600, height: 1500, deviceScaleFactor: 1, mobile: false })
+  await cdp('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false })
   await cdp('Page.navigate', { url: URL })
   for (const s of STEPS) {
     if (s.wait) await sleep(s.wait)
@@ -55,11 +72,17 @@ try {
       const r = await cdp('Runtime.evaluate', { expression: s.js, returnByValue: true })
       console.log('js:', JSON.stringify(r.result?.result?.value ?? r.result?.exceptionDetails?.text))
     }
+    if (s.gcode) {
+      // via la propia app: misma conexión que los botones
+      const r = await cdp('Runtime.evaluate', { expression: `(async()=>{const ws=new WebSocket('ws://'+location.host+'/websocket');await new Promise(r=>ws.onopen=r);ws.send(JSON.stringify({jsonrpc:'2.0',id:1,method:'printer.gcode.script',params:{script:${JSON.stringify(s.gcode)}}}));await new Promise(r=>setTimeout(r,300));ws.close();return 'sent'})()`, awaitPromise: true, returnByValue: true })
+      console.log('gcode:', s.gcode, r.result?.result?.value)
+    }
+    if (s.mouse) await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: s.mouse[0], y: s.mouse[1] })
     if (s.key) {
       for (const type of ['keyDown', 'keyUp']) await cdp('Input.dispatchKeyEvent', { type, code: s.key, key: s.key })
     }
     if (s.shot) {
-      const r = await cdp('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true })
+      const r = await cdp('Page.captureScreenshot', { format: 'png', captureBeyondViewport: s.full !== false })
       writeFileSync(`${OUT}/${s.shot}.png`, Buffer.from(r.result.data, 'base64'))
       console.log('shot', `${OUT}/${s.shot}.png`)
     }

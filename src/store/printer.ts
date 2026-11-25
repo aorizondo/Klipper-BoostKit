@@ -20,7 +20,7 @@ const SUBSCRIBE_PREFIXES = [
   'extruder', 'heater_bed', 'heater_generic ', 'temperature_sensor ', 'temperature_fan ',
   'fan', 'fan_generic ', 'heater_fan ', 'controller_fan ', 'idle_timeout', 'pause_resume',
   'probe', 'bed_mesh', 'screws_tilt_adjust', 'exclude_object', 'gcode_macro _', 'output_pin ',
-  'query_endstops', 'manual_probe', 'system_stats', 'accel_endstop', 'firmware_retraction',
+  'query_endstops', 'manual_probe', 'system_stats', 'accel_endstop', 'firmware_retraction', 'boostkit',
 ]
 
 export const state = reactive({
@@ -31,7 +31,6 @@ export const state = reactive({
   status: {} as Status,
   settings: {} as Status, // configfile.settings
   saveConfigPending: false,
-  temps: {} as Record<string, { t: number[]; target: number[] }>,
   log: [] as LogLine[],
   toasts: [] as Toast[],
   busy: 0,
@@ -78,8 +77,8 @@ function merge(target: Status, diff: Status) {
 }
 
 /** Envía G-code. Devuelve true si Klipper respondió ok. */
-export async function gcode(script: string, opts: { quiet?: boolean } = {}): Promise<boolean> {
-  pushLog('cmd', script)
+export async function gcode(script: string, opts: { quiet?: boolean; silent?: boolean } = {}): Promise<boolean> {
+  if (!opts.silent) pushLog('cmd', script)
   state.busy++
   try {
     await api.call('printer.gcode.script', { script })
@@ -142,33 +141,14 @@ async function initKlippy() {
   state.settings = cfg.status.configfile.settings
   state.saveConfigPending = cfg.status.configfile.save_config_pending
   try {
-    const store = await api.call('server.temperature_store')
-    for (const [name, d] of Object.entries<any>(store)) {
-      state.temps[name] = { t: d.temperatures ?? [], target: d.targets ?? [] }
-    }
+    hooks.tempStore(await api.call('server.temperature_store'))
   } catch {
     /* sin historial */
   }
 }
 
-let sampler: number | undefined
-function startSampler() {
-  // Moonraker guarda 1 muestra/s; hacemos lo mismo para el gráfico en vivo.
-  clearInterval(sampler)
-  sampler = window.setInterval(() => {
-    for (const name of heaters.value) {
-      const s = state.status[name]
-      if (!s) continue
-      const h = (state.temps[name] ??= { t: [], target: [] })
-      h.t.push(s.temperature ?? 0)
-      h.target.push(s.target ?? 0)
-      if (h.t.length > 1200) {
-        h.t.splice(0, h.t.length - 1200)
-        h.target.splice(0, h.target.length - 1200)
-      }
-    }
-  }, 1000)
-}
+/** Enganches para otros módulos (evita importaciones circulares). */
+export const hooks = { tempStore: (_store: any) => {} }
 
 export function start() {
   api.onOpen = async () => {
@@ -182,7 +162,6 @@ export function start() {
     }
     await loadPrefs()
     await initKlippy().catch((e) => toast(String(e.message ?? e), 'err'))
-    startSampler()
   }
   api.onClose = () => {
     state.connected = false
