@@ -1,0 +1,82 @@
+:root {
+  --bg: #0e1013;
+  --bg2: #15181d;
+  --card: #1a1e24;
+  --card2: #20252c;
+  --line: #2a3038;
+  --text: #e7eaee;
+  --mute: #8b94a0;
+  --accent: #ff7a1a;
+  --accent2: #ffb066;
+  --ok: #3ecf8e;
+  --warn: #f5c542;
+  --err: #ff5d5d;
+  --x: #ff6b6b;
+  --y: #4cd97b;
+  --z: #4ea8ff;
+  --e: #c58cff;
+  --r: 14px;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--font); }
+button, input, select { font: inherit; color: inherit; }
+::selection { background: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+.card {
+  background: linear-gradient(180deg, var(--card), var(--bg2));
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 14px 16px 16px;
+  min-width: 0;
+}
+.card h2 {
+  margin: 0 0 12px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--mute); font-weight: 600; display: flex; align-items: center; gap: 8px;
+}
+.card h2 .spacer { flex: 1; }
+
+.btn {
+  background: var(--card2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 7px 12px; cursor: pointer; transition: background .12s, border-color .12s, transform .06s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { border-color: #3a424d; background: #262c34; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #1a0d00; font-weight: 600; }
+.btn.primary:hover:not(:disabled) { background: var(--accent2); }
+.btn.danger { border-color: color-mix(in srgb, var(--err) 50%, var(--line)); color: var(--err); }
+.btn.sm { padding: 4px 9px; font-size: 12px; border-radius: 8px; }
+.btn.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--card2)); }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { background: var(--card2); border: 0; padding: 6px 11px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--accent); color: #1a0d00; font-weight: 600; }
+
+.num {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px;
+  width: 80px; text-align: right; font-family: var(--mono);
+}
+.num:focus { outline: none; border-color: var(--accent); }
+
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mute { color: var(--mute); }
+.mono { font-family: var(--mono); }
+.small { font-size: 12px; }
+.grow { flex: 1; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+.kv > :nth-child(odd) { color: var(--mute); }
+.hint { font-size: 12px; color: var(--mute); margin-top: 8px; }
+.ax-x { color: var(--x); } .ax-y { color: var(--y); } .ax-z { color: var(--z); } .ax-e { color: var(--e); }
+.sep { height: 1px; background: var(--line); margin: 12px 0; }
+
+input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; width: 100%; height: 26px; }
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent) var(--p, 50%), var(--line) var(--p, 50%)); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--line); }
+input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; margin-top: -6px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent); }
+input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent); }
+input[type=range]:disabled { opacity: .4; }

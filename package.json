@@ -1,0 +1,25 @@
+{
+  "name": "klipper-boostkit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tablero visual para Klipper/Moonraker: jog con teclado numérico, babystep, temperaturas, offsets, pressure advance, nivelación y calibración",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "mock": "node dev/mock-moonraker.mjs",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.0",
+    "vue-tsc": "^3.0.0",
+    "ws": "^8.18.0"
+  }
+}
